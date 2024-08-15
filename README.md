@@ -1,10 +1,10 @@
-# laravel-doris
+# Laravel-doris
 让drois和starrocks直接使用查询构造器和ORM<br/>
 This laravel extension adds support for drois and starrocks to the query builder and eloquent.<br/>
 不建议在生产环境使用<br/>
 Not recommended for use in production environments<br/>
 
-## REQUIRE
+## Require
 mysqli<br/>
 PDO<br/>
 
@@ -12,7 +12,7 @@ PDO<br/>
 
     composer require "wukongdontskipschool/laravel-doris" "^1.0.0"
 
-## USE
+## Use
 ```
 // config/database.php
 // connections inside add
@@ -103,7 +103,7 @@ cursor() 不是真的游标，doris还是会一次性全部返回
 | 11.x    | unknown    |
 | 10.x    | unknown     |
 | 9.x     | unknown     |
-| 8.x     | 1.0.0-dev   |
+| 8.x     | 1.0.0   |
 | 7.x     | unknown     |
 | 6.x     | unknown     |
 | 5.8     | unknown     |
