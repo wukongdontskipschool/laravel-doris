@@ -1,6 +1,6 @@
 # Laravel-doris
 让drois和starrocks直接使用查询构造器和ORM<br/>
-This laravel extension adds support for drois and starrocks to the query builder and eloquent.<br/>
+This laravel extension adds support for doris and starrocks to the query builder and eloquent.<br/>
 不建议在生产环境使用<br/>
 Not recommended for use in production environments<br/>
 
@@ -38,7 +38,7 @@ PDO<br/>
 ],
 ```
 
-### lumen需额外注册 Lumen Additional registration required
+### Lumen需额外注册 Lumen Additional registration required
 ```
 // bootstrap/app.php
 // add
