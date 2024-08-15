@@ -1,16 +1,20 @@
-# Laravel-doris
-让drois和starrocks直接使用查询构造器和ORM<br/>
-This laravel extension adds support for drois and starrocks to the query builder and eloquent.<br/>
+# Laravel-doris-cte
+让drois和starrocks直接使用查询构造器和ORM还有cte<br/>
+This laravel extension adds support for doris and starrocks to the query builder and eloquent and common table expressions (CTE)<br/>
 不建议在生产环境使用<br/>
 Not recommended for use in production environments<br/>
 
 ## Require
 mysqli<br/>
 PDO<br/>
+[laravel-cte](https://github.com/staudenmeir/laravel-cte)
 
 ## Installation
 
-    composer require "wukongdontskipschool/laravel-doris" "^1.0.0"
+    // 根据laravel版本自行安装 Install yourself according to the laravel version
+    composer require "staudenmeir/laravel-cte" "^1.5"
+
+    composer require "wukongdontskipschool/laravel-doris" "dev-cte-1.0.0"
 
 ## Use
 ```
@@ -42,6 +46,7 @@ PDO<br/>
 ```
 // bootstrap/app.php
 // add
+$app->register(\Staudenmeir\LaravelCte\DatabaseServiceProvider::class);
 $app->register(\Wukongdontskipschool\LaravelDoris\DatabaseServiceProvider::class);
 ```
 
@@ -51,6 +56,13 @@ $app->register(\Wukongdontskipschool\LaravelDoris\DatabaseServiceProvider::class
 DB::connection('doris')->select('show tables');
 
 XXModel::where('value', '=', 1)->get();
+
+DB::connection('doris')
+    ->table('p')
+    ->select('p.*')
+    ->withExpression('p', DB::table(tableName))
+    ->get();
+
 ```
 
 #### DB查询结果集 DB Query result

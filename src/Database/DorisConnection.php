@@ -2,10 +2,22 @@
 
 namespace Wukongdontskipschool\LaravelDoris\Database;
 
-use Illuminate\Database\MySqlConnection;
+use Staudenmeir\LaravelCte\Query\Builder;
+use Staudenmeir\LaravelCte\Connections\MySqlConnection;
+use Staudenmeir\LaravelCte\Query\Grammars\MySqlGrammar;
 
 class DorisConnection extends MySqlConnection
 {
+    /**
+     * Get a new query builder instance.
+     *
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public function query()
+    {
+        return new Builder($this, new MySqlGrammar());
+    }
+
     public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
     {
 
