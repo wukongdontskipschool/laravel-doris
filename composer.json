@@ -1,7 +1,7 @@
 {
     "name": "wukongdontskipschool/laravel-doris",
     "version": "1.0.0-dev",
-    "description": "This laravel extension adds support for drois and starrocks to the query builder and eloquent.",
+    "description": "This laravel extension adds support for doris and starrocks to the query builder and eloquent.",
     "keywords": ["laravel-doris", "doris-orm", "laravel-starrocks", "starrocks-orm"],
     "homepage": "https://github.com/wukongdontskipschool/laravel-doris",
     "type": "library",
