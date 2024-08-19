@@ -60,7 +60,7 @@ XXModel::where('value', '=', 1)->get();
 DB::connection('doris')
     ->table('p')
     ->select('p.*')
-    ->withExpression('p', DB::table(tableName))
+    ->withExpression('p', DB::connection('doris')->table(tableName))
     ->get();
 
 ```
@@ -113,7 +113,7 @@ cursor() 不是真的游标，doris还是会一次性全部返回
 | Laravel | Package |
 |:--------|:--------|
 | 11.x    | unknown    |
-| 10.x    | unknown     |
+| 10.x    | 1.0.0     |
 | 9.x     | unknown     |
 | 8.x     | 1.0.0   |
 | 7.x     | unknown     |
