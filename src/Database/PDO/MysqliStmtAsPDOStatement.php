@@ -60,7 +60,7 @@ class MysqliStmtAsPDOStatement extends PDOStatement
         try {
             $res = $this->mysqli->query($sql);
         } catch (\Throwable $e) {
-            throw new QueryException($this->sql, $this->realBoundParams, $e);
+            throw $e;
         }
 
         if ($res instanceof \mysqli_result) {
