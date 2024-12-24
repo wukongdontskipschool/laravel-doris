@@ -28,7 +28,7 @@ class MysqliAsPDO extends PDO
         // 设置
         $this->buildOptions($options);
 
-        //initiate the connection to the server, using both previously specified timeouts
+        // initiate the connection to the server, using both previously specified timeouts
         $this->mysqli->real_connect(
             $dsn['host'],
             $dsn['username'] ?? null,
@@ -42,7 +42,7 @@ class MysqliAsPDO extends PDO
 
     private function buildOptions(array $options)
     {
-        //specify the connection timeout
+        // specify the connection timeout
         $timeout = $options[PDO::ATTR_TIMEOUT] ?? 30;
         $this->mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, $timeout);
 
@@ -53,14 +53,55 @@ class MysqliAsPDO extends PDO
         }
     }
 
+    /**
+     * 返回影响行数
+     */
     public function exec(string $statement): int|false
     {
-        return $this->mysqli->query($statement);
+        $stmt = $this->prepare($statement);
+        if ($stmt->execute() === false) {
+            return false;
+        }
+
+        return $stmt->rowCount();
     }
 
     public function prepare(string $query, array $options = []): MysqliStmtAsPDOStatement|false
     {
         return new MysqliStmtAsPDOStatement($this->mysqli, $query, $options);
+    }
+
+    /**
+     * @throws PDOException
+     */
+    public function beginTransaction(): bool
+    {
+        try {
+            $this->prepare('BEGIN;')->execute();
+        } catch (\Throwable $e) {
+            throw new \PDOException($e->getMessage());
+        }
+        return true;
+    }
+
+    public function commit(): bool
+    {
+        try {
+            $this->prepare('COMMIT;')->execute();
+        } catch (\Throwable $e) {
+            throw new \PDOException($e->getMessage());
+        }
+        return true;
+    }
+
+    public function rollBack(): bool
+    {
+        try {
+            $this->prepare('ROLLBACK;')->execute();
+        } catch (\Throwable $e) {
+            throw new \PDOException($e->getMessage());
+        }
+        return true;
     }
 
     /**

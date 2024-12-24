@@ -2,10 +2,7 @@
 
 namespace Wukongdontskipschool\LaravelDoris\Database\PDO;
 
-use Illuminate\Database\QueryException;
 use \PDOStatement;
-
-use function PHPUnit\Framework\isNull;
 
 /**
  * @deprecated
@@ -37,7 +34,7 @@ class MysqliStmtAsPDOStatement extends PDOStatement
      */
     private $realBoundParams = [];
 
-    private $mysqliBindings = [];
+    private $fetchMode = \PDO::FETCH_OBJ;
 
     /**
      * @var \mysqli_result
@@ -54,10 +51,8 @@ class MysqliStmtAsPDOStatement extends PDOStatement
 
     public function execute(array|null $params = null): bool
     {
-        $sql = $this->buildSql();
-
-        // echo json_encode(['execute', $sql]) . '<br/>' . PHP_EOL;
         try {
+            $sql = $this->buildSql();
             $res = $this->mysqli->query($sql);
         } catch (\Throwable $e) {
             throw $e;
@@ -73,6 +68,7 @@ class MysqliStmtAsPDOStatement extends PDOStatement
 
     public function setFetchMode($mode, $className = null, ...$params)
     {
+        $this->fetchMode = $mode;
         // return parent::setFetchMode($mode, $className, ...$params);
     }
 
@@ -80,37 +76,53 @@ class MysqliStmtAsPDOStatement extends PDOStatement
     {
         switch ($type) {
             case \PDO::PARAM_INT:
-                $value = intval($value);
-                break;
-            case \PDO::PARAM_STR:
-                $value = "'" . $this->mysqli->real_escape_string($value) . "'";
+                $value = (string) $value;
                 break;
             case \PDO::PARAM_BOOL:
-                $value = boolval($value);
+                $value = $this->escapeBool($value);
                 break;
             case \PDO::PARAM_NULL:
-                $value = null;
+                $value = 'NULL';
+                break;
+            case \PDO::PARAM_STR:
+                $value = $this->escapeString($value);
                 break;
             case \PDO::PARAM_LOB:
-                $value = null;
+                $value = $this->escapeBinary($value);
                 break;
+            default:
+                throw new \Exception('Unsupported parameter type: ' . $type);
         }
+
         $this->realBoundParams[$param] = $value;
         return true;
     }
 
-    /**
-     * $args 有异议
-     */
-    public function fetchAll(int $mode = \PDO::FETCH_DEFAULT, mixed ...$args): array
+    public function fetchAll(int $mode = \PDO::FETCH_DEFAULT, ...$args): array
     {
         // return parent::fetchAll($mode, ...$args);
-        return $this->queryResult->fetch_all(MYSQLI_ASSOC);
+        $result = [];
+        if ($this->fetchMode === \PDO::FETCH_OBJ) {
+            while ($row = $this->queryResult->fetch_object()) {
+                $result[] = $row;
+            }
+        } else {
+            $result = $this->queryResult->fetch_all(MYSQLI_ASSOC);
+        }
+
+        return $result;
     }
 
-    public function fetch(int $mode = \PDO::FETCH_DEFAULT, mixed ...$args): mixed
-    {
+    public function fetch(
+        int $mode = \PDO::FETCH_DEFAULT,
+        $cursorOrientation = \PDO::FETCH_ORI_NEXT,
+        int $cursorOffset = 0
+    ): mixed {
         // return parent::fetch($mode, ...$args);
+        if ($this->fetchMode === \PDO::FETCH_OBJ) {
+            return $this->queryResult->fetch_object();
+        }
+
         return $this->queryResult->fetch_assoc();
     }
 
@@ -127,18 +139,124 @@ class MysqliStmtAsPDOStatement extends PDOStatement
      */
     public function buildSql(): string
     {
-        ksort($this->realBoundParams);
-        $values = $this->realBoundParams;
-        $result = preg_replace_callback(
-            '/\?/',
-            static function () use (&$values) {
-                $val = array_shift($values);
-                // null 用NULL字符串代替 sql中时没有引号的
-                return is_null($val) ? 'NULL' : $val;
-            },
-            $this->sql
-        );
+        return $this->substituteBindingsIntoRawSql($this->sql, $this->realBoundParams);
+    }
 
-        return $result;
+    /**
+     * Substitute the given bindings into the given raw SQL query.
+     *
+     * @param  string  $sql
+     * @param  array  $bindings
+     * @return string
+     */
+    private function substituteBindingsIntoRawSql($sql, $bindings)
+    {
+        $query = '';
+
+        $isStringLiteral = false;
+
+        for ($i = 0; $i < strlen($sql); $i++) {
+            $char = $sql[$i];
+            $nextChar = $sql[$i + 1] ?? null;
+
+            // Single quotes can be escaped as '' according to the SQL standard while
+            // MySQL uses \'. Postgres has operators like ?| that must get encoded
+            // in PHP like ??|. We should skip over the escaped characters here.
+            if (in_array($char . $nextChar, ["\'", "''", '??'])) {
+                $query .= $char . $nextChar;
+                $i += 1;
+            } elseif ($char === "'") { // Starting / leaving string literal...
+                $query .= $char;
+                $isStringLiteral = ! $isStringLiteral;
+            } elseif ($char === '?' && ! $isStringLiteral) { // Substitutable binding...
+                $query .= array_shift($bindings) ?? '?';
+            } else { // Normal character...
+                $query .= $char;
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Escape a boolean value for safe SQL embedding.
+     *
+     * @param  bool  $value
+     * @return string
+     */
+    private function escapeBool($value)
+    {
+        return $value ? '1' : '0';
+    }
+
+    /**
+     * Escape a string value for safe SQL embedding.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    private function escapeString($value)
+    {
+        if (!preg_match('//u', $value)) {
+            return "'" . $this->bin2Text($value) . "'";
+        }
+
+        if (str_contains($value, "\00")) {
+            throw new \Exception('Strings with null bytes cannot be escaped. Use the binary escape option.');
+        }
+
+        if (preg_match('//u', $value) === false) {
+            throw new \Exception('Strings with invalid UTF-8 byte sequences cannot be escaped.');
+        }
+
+        return "'" . $this->mysqli->real_escape_string($value) . "'";
+    }
+
+    /**
+     * Escape a binary value for safe SQL embedding.
+     *
+     * @param  string  $value
+     * @return string 16进制
+     */
+    private function escapeBinary($value)
+    {
+        // 转16进制
+        $hex = bin2hex($value);
+
+        return "'{$hex}'";
+    }
+
+    /**
+     * 二进制转字符串
+     */
+    private function bin2Text($value)
+    {
+        return $this->hex2Text(bin2hex($value));
+    }
+
+    /**
+     * 16进制转字符串
+     */
+    private function hex2Text($hex)
+    {
+        // 检查是否为有效的十六进制字符串
+        if (!ctype_xdigit($hex)) {
+            throw new \Exception('Text nust be a hexadecimal, that is a decimal digit or a character from [A-Fa-f].');
+        }
+
+        // 如果长度为奇数，补充一个0
+        if (strlen($hex) % 2 != 0) {
+            throw new \Exception('The length must be an even number.');
+        }
+
+        // 转换为二进制，然后解压缩
+        $binary = hex2bin($hex);
+        $decompressed = @gzuncompress($binary);
+
+        if ($decompressed === false) {
+            throw new \Exception('Binary decoding error.');
+        }
+
+        return $decompressed;
     }
 }

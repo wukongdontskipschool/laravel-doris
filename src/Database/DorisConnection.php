@@ -15,7 +15,9 @@ class DorisConnection extends MySqlConnection
      */
     public function query()
     {
-        return new Builder($this, new MySqlGrammar());
+        $grammar = new MySqlGrammar();
+        $grammar->setConnection($this);
+        return new Builder($this, $grammar);
     }
 
     public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
@@ -53,7 +55,12 @@ class DorisConnection extends MySqlConnection
             $statement->bindValue(
                 is_string($key) ? $key : $key + 1,
                 $value,
-                is_null($value) ? \PDO::PARAM_NULL : (is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR)
+                match (true) {
+                    is_int($value) => \PDO::PARAM_INT,
+                    is_null($value) => \PDO::PARAM_NULL,
+                    is_resource($value) => \PDO::PARAM_LOB,
+                    default => \PDO::PARAM_STR
+                },
             );
         }
     }
