@@ -17,6 +17,7 @@
     ],
     "minimum-stability": "dev",
     "require": {
+        "php": "^8.0",
         "illuminate/database": "*",
         "staudenmeir/laravel-cte": "*"
     },

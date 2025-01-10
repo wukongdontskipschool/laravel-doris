@@ -16,7 +16,10 @@ class DorisConnection extends MySqlConnection
     public function query()
     {
         $grammar = new MySqlGrammar();
-        $grammar->setConnection($this);
+        // 判断setConnection是否存在
+        if (method_exists($grammar, 'setConnection')) {
+            $grammar->setConnection($this);
+        }
         return new Builder($this, $grammar);
     }
 
@@ -55,13 +58,22 @@ class DorisConnection extends MySqlConnection
             $statement->bindValue(
                 is_string($key) ? $key : $key + 1,
                 $value,
-                match (true) {
-                    is_int($value) => \PDO::PARAM_INT,
-                    is_null($value) => \PDO::PARAM_NULL,
-                    is_resource($value) => \PDO::PARAM_LOB,
-                    default => \PDO::PARAM_STR
-                },
+                $this->getType($value),
             );
+        }
+    }
+
+    private function getType($value)
+    {
+        switch (true) {
+            case is_int($value):
+                return \PDO::PARAM_INT;
+            case is_null($value):
+                return \PDO::PARAM_NULL;
+            case is_resource($value):
+                return \PDO::PARAM_LOB;
+            default:
+                return \PDO::PARAM_STR;
         }
     }
 }
