@@ -3,7 +3,6 @@
 namespace Wukongdontskipschool\LaravelDoris\Database\Connectors;
 
 use Illuminate\Database\Connectors\MySqlConnector;
-use Wukongdontskipschool\LaravelDoris\Database\PDO\MysqliAsPDO;
 use PDO;
 
 class DorisConnector extends MySqlConnector
@@ -14,7 +13,7 @@ class DorisConnector extends MySqlConnector
      * @param  array  $config
      * @return \PDO
      */
-    public function connect(array $config)
+    public function connect($config)
     {
         $dsn = $this->getDsn($config);
         $options = $this->getOptions($config);
@@ -56,7 +55,12 @@ class DorisConnector extends MySqlConnector
      */
     protected function createPdoConnection($dsn, $username, $password, $options)
     {
-        return new MysqliAsPDO($dsn, $username, $password, $options);
+        // 判断php版本8
+        if (strpos(PHP_VERSION, '8') === 0) {
+            return new \Wukongdontskipschool\LaravelDoris\Database\PDO\MysqliAsPDO($dsn, $username, $password, $options);
+        } else {
+            return new \Wukongdontskipschool\LaravelDoris\Database\PDO74\MysqliAsPDO($dsn, $username, $password, $options);
+        }
     }
 
     /**
@@ -66,7 +70,7 @@ class DorisConnector extends MySqlConnector
      * @param  array  $config
      * @return string
      */
-    protected function strictMode(PDO $connection, $config)
+    protected function strictMode($connection, $config)
     {
         return "set session sql_mode='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'";
     }

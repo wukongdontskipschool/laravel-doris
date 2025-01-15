@@ -1,6 +1,6 @@
 <?php
 
-namespace Wukongdontskipschool\LaravelDoris\Database\PDO;
+namespace Wukongdontskipschool\LaravelDoris\Database\PDO74;
 
 use \PDO;
 use Wukongdontskipschool\LaravelDoris\Database\PDOTrait\PDOTrait;
@@ -18,34 +18,39 @@ class MysqliAsPDO extends PDO
     protected $mysqli = null;
 
     /**
-     * 执行语句 返回影响行数
+     * 返回影响行数
+     * @param string $statement
+     * @return int
+     * @throws
      */
-    public function exec(string $statement): int|false
+    public function exec($statement): int
     {
-        // parent::exec();
         $stmt = $this->prepare($statement);
         if ($stmt->execute() === false) {
-            return false;
+            throw new \PDOException('SQL execute failed');
         }
 
         return $stmt->rowCount();
     }
 
     /**
-     * 获取预处理对象
+     * @param string $query
+     * @param array $options
+     * @return MysqliStmtAsPDOStatement
      */
-    public function prepare(string $query, array $options = []): MysqliStmtAsPDOStatement|false
+    public function prepare($query, $options = []): MysqliStmtAsPDOStatement
     {
+        // parent::prepare();
         return new MysqliStmtAsPDOStatement($this->mysqli, $query, $options);
     }
 
     /**
      * doris 数据库没有lastInsertId
-     * @return string|false // 0
+     * @param ?string $name
+     * @return string // 0
      */
-    public function lastInsertId(?string $name = null): string|false
+    public function lastInsertId($name = null): string
     {
-        // parent::lastInsertId();
         return $this->mysqli->insert_id;
     }
 }

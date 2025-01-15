@@ -12,7 +12,7 @@ PDO<br/>
     // 根据laravel版本自行安装 Install yourself according to the laravel version
     composer require "staudenmeir/laravel-cte":"^1.5"
 
-    composer require "wukongdontskipschool/laravel-doris":"dev-cte-2.0.0.0"
+    composer require "wukongdontskipschool/laravel-doris":"dev-cte-2.0.0.2"
 
 ## Use
 ```
