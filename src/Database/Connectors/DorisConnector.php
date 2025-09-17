@@ -30,18 +30,83 @@ class DorisConnector extends MySqlConnector
             $connection->exec("use `{$config['database']}`;");
         }
 
-        $this->configureIsolationLevel($connection, $config);
-
-        $this->configureEncoding($connection, $config);
-
-        // Next, we will check to see if a timezone has been specified in this config
-        // and if it has we will issue a statement to modify the timezone with the
-        // database. Setting this DB timezone is an optional configuration item.
-        $this->configureTimezone($connection, $config);
-
-        $this->setModes($connection, $config);
+        $this->configureConnection($connection, $config);
 
         return $connection;
+    }
+
+    /**
+     * Configure the given PDO connection.
+     *
+     * @param  \PDO  $connection
+     * @param  array  $config
+     * @return void
+     */
+    protected function configureConnection(PDO $connection, array $config)
+    {
+        if (isset($config['isolation_level'])) {
+            // doris隔离级别唯一 READ COMMITTED
+            // $connection->exec(sprintf('SET SESSION TRANSACTION ISOLATION LEVEL %s;', $config['isolation_level']));
+        }
+
+        $statements = [];
+
+        if (isset($config['charset'])) {
+            if (isset($config['collation'])) {
+                $statements[] = sprintf("NAMES '%s' COLLATE '%s'", $config['charset'], $config['collation']);
+            } else {
+                $statements[] = sprintf("NAMES '%s'", $config['charset']);
+            }
+        }
+
+        if (isset($config['timezone'])) {
+            $statements[] = sprintf("time_zone='%s'", $config['timezone']);
+        }
+
+        $strictMode = $this->getStrictMode($config);
+        if ($strictMode !== null) {
+            $statements[] = sprintf("enable_insert_strict=%s", $strictMode);
+        }
+
+        $sqlMode = $this->getSqlMode($connection, $config);
+        if ($sqlMode !== null) {
+            $statements[] = sprintf("sql_mode='%s'", $sqlMode);
+        }
+
+        if ($statements !== []) {
+            $connection->exec(sprintf('SET %s;', implode(', ', $statements)));
+        }
+    }
+
+    /**
+     * Get the sql_mode value.
+     *
+     * @param  \PDO  $connection
+     * @param  array  $config
+     * @return string|null
+     */
+    protected function getSqlMode(PDO $connection, array $config)
+    {
+        if (isset($config['modes'])) {
+            return implode(',', $config['modes']);
+        }
+
+        return null;
+        // NO_AUTO_CREATE_USER
+        // return 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+    }
+
+    protected function getStrictMode(array $config)
+    {
+        if (! isset($config['strict'])) {
+            return null;
+        }
+
+        if ($config['strict']) {
+            return 'true';
+        }
+
+        return 'false';
     }
 
     /**
@@ -61,17 +126,5 @@ class DorisConnector extends MySqlConnector
         } else {
             return new \Wukongdontskipschool\LaravelDoris\Database\PDO74\MysqliAsPDO($dsn, $username, $password, $options);
         }
-    }
-
-    /**
-     * Get the query to enable strict mode.
-     *
-     * @param  \PDO  $connection
-     * @param  array  $config
-     * @return string
-     */
-    protected function strictMode($connection, $config)
-    {
-        return "set session sql_mode='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'";
     }
 }
