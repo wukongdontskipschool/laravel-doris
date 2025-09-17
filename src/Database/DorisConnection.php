@@ -59,4 +59,23 @@ class DorisConnection extends MySqlConnection
                 return \PDO::PARAM_STR;
         }
     }
+
+    /**
+     * 断开连接
+     */
+    public function disconnect()
+    {
+        if ($this->config['disconnectCloseMysqli'] ?? false) {
+            if ($pdo = $this->getPdo()) {
+                $pdo->closeMysqli();
+                $pdo = null;
+            }
+            if ($readPdo = $this->getReadPdo()) {
+                $readPdo->closeMysqli();
+                $readPdo = null;
+            }
+        }
+
+        parent::disconnect();
+    }
 }

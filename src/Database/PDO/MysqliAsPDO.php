@@ -13,11 +13,6 @@ class MysqliAsPDO extends PDO
     use PDOTrait;
 
     /**
-     * @var \mysqli
-     */
-    protected $mysqli = null;
-
-    /**
      * 执行语句 返回影响行数
      */
     public function exec(string $statement): int|false
@@ -36,7 +31,9 @@ class MysqliAsPDO extends PDO
      */
     public function prepare(string $query, array $options = []): MysqliStmtAsPDOStatement|false
     {
-        return new MysqliStmtAsPDOStatement($this->mysqli, $query, $options);
+        $stmt = new MysqliStmtAsPDOStatement($this->mysqli, $query, $options);
+        $stmt->setDBConfig($this->config);
+        return $stmt;
     }
 
     /**

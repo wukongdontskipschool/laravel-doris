@@ -5,11 +5,6 @@ namespace Wukongdontskipschool\LaravelDoris\Database\PDOTrait;
 trait PDOStatementTrait
 {
     /**
-     * @var \mysqli_stmt
-     */
-    private $stmt;
-
-    /**
      * @var \mysqli
      */
     private $mysqli;
@@ -36,12 +31,27 @@ trait PDOStatementTrait
      */
     private $queryResult = null;
 
+    /** 数据库配置
+     * @var array
+     */
+    private $config = [];
+
     public function __construct(\mysqli $mysqli, $sql, $options = [])
     {
-        $this->stmt = new \mysqli_stmt($mysqli, null);
         $this->sql = $sql;
         $this->options = $options;
         $this->mysqli = $mysqli;
+    }
+
+    /**
+     * 设置数据库配置 目前用于记录sql
+     * @param array $config
+     * @return $this
+     */
+    public function setDBConfig($config)
+    {
+        $this->config = $config;
+        return $this;
     }
 
     public function setFetchMode($mode, $className = null, ...$params)
@@ -59,8 +69,12 @@ trait PDOStatementTrait
     public function execute($params = null): bool
     {
         // parent::execute();
+        $start = microtime(true);
         $sql = $this->buildSql();
         $res = $this->mysqli->query($sql);
+
+        $time = microtime(true) - $start;
+        $this->logSql($sql, $time);
 
         if ($res instanceof \mysqli_result) {
             $this->queryResult = $res;
@@ -239,5 +253,28 @@ trait PDOStatementTrait
         }
 
         return $decompressed;
+    }
+
+    /**
+     * 记录sql
+     * @param string $sql
+     * @param float $time 执行时间秒
+     */
+    private function logSql($sql, $time)
+    {
+        $logSql = $this->config['logSql'] ?? false;
+        if (! $logSql) {
+            return;
+        }
+
+        if (is_callable($logSql)) {
+            $logSql($sql, $time);
+            return;
+        }
+
+        if (function_exists('logger')) {
+            $time = number_format($time * 1000, 3) . ' ms';
+            logger()->debug('Execute Time: ' . $time . ' Doris SQL: ' . $sql);
+        }
     }
 }

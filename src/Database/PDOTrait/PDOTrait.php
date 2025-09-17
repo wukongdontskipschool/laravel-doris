@@ -7,6 +7,22 @@ use PDO;
 trait PDOTrait
 {
     /**
+     * @var \mysqli
+     */
+    protected $mysqli = null;
+
+    /** 数据库配置
+     * @var array
+     */
+    protected $config = [];
+
+    /**
+     * 数据库是否连接
+     * @var bool
+     */
+    protected $mysqliIsConnected = false;
+
+    /**
      * @param array $dsn // 为config 因为mysqli没有dsn连接方式
      * @param string $username
      * @param string $password
@@ -14,6 +30,7 @@ trait PDOTrait
      */
     public function __construct($dsn, $username, $password, $options = array())
     {
+        $this->config = $dsn;
         $this->mysqli = mysqli_init();
 
         // 设置
@@ -27,6 +44,8 @@ trait PDOTrait
             $dsn['database'],
             $dsn['port'],
         );
+
+        $this->mysqliIsConnected = true;
 
         parent::__construct($dsn['dsn'], $username, $password, $options);
     }
@@ -75,5 +94,16 @@ trait PDOTrait
     {
         $res = $this->prepare('ROLLBACK;')->execute();
         return $res === false ? false : true;
+    }
+
+    /**
+     * 关闭mysqli
+     */
+    public function closeMysqli()
+    {
+        if ($this->mysqli && $this->mysqliIsConnected) {
+            $this->mysqli->close();
+            $this->mysqliIsConnected = false;
+        }
     }
 }

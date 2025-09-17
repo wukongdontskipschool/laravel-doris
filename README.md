@@ -10,10 +10,10 @@ PDO<br/>
 
 ## Installation
 
-    composer require "wukongdontskipschool/laravel-doris":"2.0.0.2-dev"
+    composer require "wukongdontskipschool/laravel-doris":"2.0.1.0-dev"
 
     // cte
-    composer require "wukongdontskipschool/laravel-doris":"dev-cte-2.0.0.2"
+    composer require "wukongdontskipschool/laravel-doris":"dev-cte-2.0.1.0"
 
 ## Use
 ```
@@ -37,7 +37,14 @@ PDO<br/>
         PDO::ATTR_TIMEOUT => 3,
         // 是否数值类型转字符串 Whether numeric type is converted to string
         PDO::ATTR_EMULATE_PREPARES => false
-    ]
+    ],
+    // DB::disconnect()时是否关闭mysqli 默认false走laravel的disconnect和php垃圾回收机制
+    'disconnectCloseMysqli' => false,
+    // 是否记录sql bool|callable
+    'logSql' => false,
+    // 'logSql' => function ($sql, $querySeconds) {
+    //     logger(sprintf('Execute Time: %6f s Doris SQL: %s ', $querySeconds, $sql));
+    // }
 ],
 ```
 
@@ -62,10 +69,11 @@ cursor() 不是真的游标，doris还是会一次性全部返回
 
 | Laravel | Package |
 |:--------|:--------|
-| 11.x    | unknown    |
-| 10.x    | 2.0.0.x     |
+| 12.x    | 2.0.1.x    |
+| 11.x    | 2.0.1.x    |
+| 10.x    | 2.0.1.x     |
 | 9.x     | unknown     |
-| 8.x     | 2.0.0.x   |
+| 8.x     | 2.0.1.x   |
 | 7.x     | unknown     |
 | 6.x     | unknown     |
 | 5.8     | unknown     |
